@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  app:
+    container_name: my-app
+    image: spring-app
+    depends_on:
+     - redis
+     - mysql
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/testdb
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: allanok
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+
+  mysql:
+    container_name: mysql-demo
+    image: mysql
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+    environment:
+      MYSQL_ROOT_PASSWORD: allanok
+      MYSQL_DATABASE: testdb
+
+
+  redis:
+    image: redis
+    container_name: test-redis
+    ports:
+      - "6379:6379"
+volumes:
+  mysql-data:
+
+
+
+
+
