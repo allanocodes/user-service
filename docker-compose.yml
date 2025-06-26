@@ -4,6 +4,8 @@ services:
   app:
     container_name: my-app
     image: spring-app
+    build:
+      context: .
     depends_on:
      - redis
      - mysql
