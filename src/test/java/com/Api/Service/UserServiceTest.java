@@ -2,6 +2,7 @@ package com.Api.Service;
 
 import com.Api.Dao.UserRepositories;
 import com.Api.Entity.User;
+import com.Api.Exceptions.ServiceException;
 import com.Api.service.UserService;
 import com.mysql.cj.util.DnsSrv;
 import org.junit.jupiter.api.AfterEach;
@@ -55,9 +56,21 @@ class UserServiceTest {
     }
 
     @Test
+    void notUsersFound(){
+        List<User> list = new ArrayList<>();
+        when(userRepositories.findAll()).thenReturn(list);
+        assertThat(service.findAll().size()).isEqualTo(0);
+    }
+
+    @Test
     void findById() {
      when(userRepositories.findById(any())).thenReturn(Optional.ofNullable(user));
      assertThat(service.findById(1).getName()).isEqualTo("allan");
+    }
+    @Test
+    void idNotfound(){
+        when(userRepositories.findById(any())).thenReturn(Optional.empty());
+        assertThat(service.findById(1)).isEqualTo(null);
     }
 
     @Test
@@ -68,9 +81,15 @@ class UserServiceTest {
 
     @Test
     void deleteById() {
+        when(userRepositories.existsById(any())).thenReturn(true);
         doNothing().when(userRepositories).delete(any());
-        service.deleteById(user.getId());
-        verify(userRepositories).deleteById(any());
+        service.deleteById(1);
+        verify(userRepositories).deleteById(1);
+    }
+    @Test
+    void idNotDuringDelete(){
+        when(userRepositories.existsById(any())).thenReturn(false);
+        assertThrows(ServiceException.class,()->service.deleteById(any()));
     }
 
     @Test
@@ -79,10 +98,21 @@ class UserServiceTest {
         when(userRepositories.save(user)).thenReturn(user);
         assertThat(service.updateById(user).getName()).isEqualTo("allan");
     }
+    @Test
+    void idNotPresentDuringUpdate(){
+     when(userRepositories.findById(any())).thenReturn(Optional.empty());
+     assertThat(service.findById(any())).isEqualTo(null);
+    }
 
     @Test
     void findByEmail() {
         when(userRepositories.getUserByEmail(any())).thenReturn(Optional.ofNullable(user));
         assertThat(service.findByEmail("allan@gmail.com").getName()).isEqualTo("allan");
+    }
+
+    @Test
+    void emailNotPresent(){
+        when(userRepositories.getUserByEmail(any())).thenReturn(Optional.empty());
+        assertThat(service.findByEmail(any())).isEqualTo(null);
     }
 }

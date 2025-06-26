@@ -11,7 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-
 @RestController
 public class UserController {
 
@@ -21,21 +20,35 @@ public class UserController {
 
     @GetMapping("/user")
     public ResponseEntity<List<User>> findAll() {
+        List<User> userList = userService.findAll();
+        if(userList.size() != 0){
+            return new ResponseEntity<>(userList, HttpStatus.OK);
+        }
+        return new ResponseEntity<>(userList, HttpStatus.NO_CONTENT);
 
-        return new ResponseEntity<>(userService.findAll(), HttpStatus.OK);
     }
 
     @GetMapping("/user/{id}")
     public ResponseEntity<User> findById(@PathVariable Integer id) {
-        return new ResponseEntity<>(userService.findById(id), HttpStatus.FOUND);
+        User user = userService.findById(id);
+        if(user != null)
+        {
+            return new ResponseEntity<>(user, HttpStatus.FOUND);
+        }
+        else{
+            return new ResponseEntity<>(user, HttpStatus.NOT_FOUND);
+        }
+
     }
 
     @PutMapping("/user/{id}")
     public ResponseEntity<User> updateUser(@RequestBody User user,@PathVariable Integer id) {
         user.setId(id);
       User user1 = userService.updateById(user);
-      System.out.println(user1);
-        return  new ResponseEntity<>(user1,HttpStatus.CREATED) ;
+      if(user1 != null){
+          return  new ResponseEntity<>(user1,HttpStatus.CREATED) ;
+      }
+        return  new ResponseEntity<>(user1,HttpStatus.NOT_FOUND) ;
 
     }
 

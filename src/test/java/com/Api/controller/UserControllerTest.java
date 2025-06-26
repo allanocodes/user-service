@@ -89,6 +89,15 @@ class UserControllerTest {
                 .andExpect(status().isFound());
     }
 
+    @Test
+    void idNotFound() throws Exception {
+        when(service.findById(any())).thenReturn(null);
+
+        this.mockMvc.perform(get("/user/1"))
+                .andDo(print())
+                .andExpect(status().isNotFound());
+    }
+
 
 
 
@@ -105,8 +114,20 @@ class UserControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("allan"));
 
-
 }
+
+   @Test
+   void userNotFoundDuringUpdate() throws Exception {
+        when(service.updateById(any(User.class))).thenReturn(null);
+
+        this.mockMvc.perform(get("/user/1"))
+                .andDo(print())
+                .andExpect(status().isNotFound());
+
+   }
+
+
+
     @Test
     void deleteById() throws Exception {
         doNothing().when(service).deleteById(any());
