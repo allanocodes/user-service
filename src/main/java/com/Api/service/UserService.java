@@ -19,6 +19,7 @@ public class UserService {
 
     public List<User> findAll(){
         return userRepositories.findAll();
+
     }
 
     @Cacheable(value ="user",key = "#id",condition = "#id != null")
