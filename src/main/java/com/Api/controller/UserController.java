@@ -36,7 +36,7 @@ public class UserController {
             return new ResponseEntity<>(user, HttpStatus.FOUND);
         }
         else{
-            return new ResponseEntity<>(user, HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
     }
@@ -48,7 +48,7 @@ public class UserController {
       if(user1 != null){
           return  new ResponseEntity<>(user1,HttpStatus.CREATED) ;
       }
-        return  new ResponseEntity<>(user1,HttpStatus.NOT_FOUND) ;
+        return  new ResponseEntity<>(HttpStatus.NOT_FOUND) ;
 
     }
 
