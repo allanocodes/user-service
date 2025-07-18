@@ -14,14 +14,6 @@ class ServiceClassAspectTest {
     @Autowired
     UserService service;
 
-    @Test
-   void nullPointerExceptionAspectTest(){
-        Exception exception = assertThrows(ServiceException.class,()->{
-            service.throwError();
-        });
 
-        assertTrue(exception.getMessage().contains("Unexpected error ocurred"));
-
-   }
 
 }

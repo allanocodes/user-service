@@ -1,22 +1,32 @@
 package com.Api.Service;
 
 import com.Api.Dao.UserRepositories;
+import com.Api.Dto.DisplayDto;
+import com.Api.Dto.MessageUser;
+import com.Api.Dto.UserDto;
+import com.Api.Dto.UserLogin;
+import com.Api.Entity.Phone;
+import com.Api.Entity.Role;
 import com.Api.Entity.User;
+import com.Api.Entity.UserProfile;
+import com.Api.Exceptions.ResourceNotFoundException;
 import com.Api.Exceptions.ServiceException;
+import com.Api.service.JwtService;
+import com.Api.service.RabbitMqProducer;
 import com.Api.service.UserService;
 import com.mysql.cj.util.DnsSrv;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 import org.reactivestreams.Publisher;
+import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.util.*;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
@@ -25,94 +35,227 @@ import static org.mockito.Mockito.*;
 
 
 class UserServiceTest {
+
     @Mock
     UserRepositories userRepositories;
-   @InjectMocks
+
+    @Mock
+    AuthenticationManager manager;
+
+    @Mock
+    PasswordEncoder passwordEncoder;
+
+    @Mock
+    AuthenticationManager authenticationManager;
+
+    @Mock
+    JwtService jwtService;
+
+    @Mock
+    MessageUser messageUser;
+
+
+    @Mock
+    RabbitMqProducer producer;
+
+    @InjectMocks
     UserService service;
 
-   List<User> userList = new ArrayList<>();
-   User user;
-   AutoCloseable autoCloseable;
+    AutoCloseable closeable;
+
+    UUID uuid = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+    User user;
+    UserDto userDto;
+
+    List<DisplayDto> displayDtoList = new ArrayList<>();
+    List<User>  userList = new ArrayList<>();
+
+    UserLogin login;
 
     @BeforeEach
-    void setUp() {
-        autoCloseable = MockitoAnnotations.openMocks(this);
-        user = new User(1,"allan","093202004","allan@gmail.com");
-        User user1 = new User("peter","981299736","peter@gmail.com");
+    void setUp(){
+        closeable =  MockitoAnnotations.openMocks(this);
+        Phone phone = Phone.builder()
+                .countryCode("254")
+                .number("123456789")
+                .build();
+
+        UserProfile profile = UserProfile.builder()
+                .name("allan")
+                .email("ndururiallan92gmail.com")
+                .phone(phone).build();
+
+        Role role = Role.builder()
+                .role_name("USER").build();
+
+        Set<Role> set = new HashSet<>();
+        set.add(role);
+         user = User.builder()
+                .username("allank")
+                .password("1234@now")
+                .userRoles(set)
+                .profile(profile)
+                .build();
+
+         userDto = UserDto.builder()
+                 .email("ndururiallan92gmail.com")
+                 .password("1234@now")
+                 .name("allan")
+                 .phone(phone)
+                 .username("allank")
+                 .build();
 
          userList.add(user);
-         userList.add(user1);
+
+
+         DisplayDto  dto = DisplayDto.builder()
+                 .email("ndururiallan92gmail.com")
+                 .name("allan")
+                 .phone(phone)
+                 .build();
+
+         login= UserLogin.builder().username("allank").password("1234").build();
+
     }
 
-    @AfterEach
-    void tearDown() throws Exception {
-        autoCloseable.close();
+
+    @Test
+    public void testInsertUser(){
+       when(userRepositories.save(any(User.class))).thenReturn(user);
+       when(passwordEncoder.encode(any())).thenReturn("1234@now");
+       when(userRepositories.getUserByUsername(any())).thenReturn(Optional.empty());
+       doNothing().when(producer).sendJsonMessage(messageUser);
+
+       assertThat(service.insertUser(userDto).getEmail())
+               .isEqualTo(user.getProfile().getEmail());
+    }
+
+
+    @Test
+    public void testInsertExistingUser(){
+
+            when(userRepositories.save(any(User.class))).thenReturn(user);
+            when(passwordEncoder.encode(any())).thenReturn("1234@now");
+            when(userRepositories.getUserByUsername(any())).thenReturn(Optional.ofNullable(user));
+            doNothing().when(producer).sendJsonMessage(messageUser);
+
+            assertThat(service.insertUser(userDto))
+                    .isEqualTo(null);
+
+    }
+
+   @Test
+    public void testGetAllUsers() {
+        when(userRepositories.findAll()).thenReturn(userList);
+        assertThat(service.getAll().get(0).getName()).isEqualTo("allan");
+
     }
 
     @Test
-    void findAll() {
-        when( userRepositories.findAll()).thenReturn(userList);
-        assertThat(service.findAll().get(0).getName()).isEqualTo("allan");
-    }
-
-    @Test
-    void notUsersFound(){
+    public void testGetUsersWithNoUsers(){
         List<User> list = new ArrayList<>();
         when(userRepositories.findAll()).thenReturn(list);
-        assertThat(service.findAll().size()).isEqualTo(0);
+        assertThat(service.getAll().size()).isEqualTo(0);
+    }
+
+   @Test
+    public void testUserById(){
+        when(userRepositories.findById(uuid)).thenReturn(Optional.ofNullable(user));
+         assertThat(service.getById(uuid).getName()).isEqualTo("allan");
     }
 
     @Test
-    void findById() {
-     when(userRepositories.findById(any())).thenReturn(Optional.ofNullable(user));
-     assertThat(service.findById(1).getName()).isEqualTo("allan");
-    }
-    @Test
-    void idNotfound(){
-        when(userRepositories.findById(any())).thenReturn(Optional.empty());
-        assertThat(service.findById(1)).isEqualTo(null);
+    public void testuserWhenIdDoesNotExist(){
+        when(userRepositories.findById(any(UUID.class))).thenReturn(Optional.empty());
+        assertThat(service.getById(uuid)).isEqualTo(null);
     }
 
     @Test
-    void insert() {
-    when(userRepositories.save(any())).thenReturn(user);
-    assertThat(service.insert(user).getName()).isEqualTo("allan");
+    public void testUpdateById(){
+        when(userRepositories.findById(any(UUID.class))).thenReturn(Optional.ofNullable(user));
+        when(passwordEncoder.encode("1234@now")).thenReturn("1234@now");
+        when(userRepositories.save(any(User.class))).thenReturn(user);
+        assertThat(service.updateById(uuid, userDto).getName()).isEqualTo("allan");
+
+    }
+   @Test
+    public void testUpdateUnknownUserById(){
+        when(userRepositories.findById(any(UUID.class))).thenReturn(Optional.empty());
+        assertThat(service.updateById(uuid, userDto)).isEqualTo(null);
     }
 
     @Test
-    void deleteById() {
-        when(userRepositories.existsById(any())).thenReturn(true);
-        doNothing().when(userRepositories).delete(any());
-        service.deleteById(1);
-        verify(userRepositories).deleteById(1);
+    public void testfindByUsername(){
+        when(userRepositories.getUserByUsername(any(String.class)))
+                .thenReturn(Optional.ofNullable(user));
+        assertThat(service.getByUsername("allan").getEmail())
+                .isEqualTo("ndururiallan92gmail.com");
     }
+
+
     @Test
-    void idNotDuringDelete(){
-        when(userRepositories.existsById(any())).thenReturn(false);
-        assertThrows(ServiceException.class,()->service.deleteById(any()));
+    public void testFindByUnknownUsername(){
+        when(userRepositories.getUserByUsername(any(String.class)))
+                .thenReturn(Optional.empty());
+        assertThat(service.getByUsername("unknown")).isEqualTo(null);
+    }
+
+  @Test
+    public void testDeleteById(){
+        doNothing().when(userRepositories).deleteById(any(UUID.class));
+        assertThat(service.deleteById(uuid)).isEqualTo("Delete Success");
     }
 
     @Test
-    void updateById() {
-        when(userRepositories.findById(1)).thenReturn(Optional.ofNullable(user));
-        when(userRepositories.save(user)).thenReturn(user);
-        assertThat(service.updateById(user).getName()).isEqualTo("allan");
-    }
-    @Test
-    void idNotPresentDuringUpdate(){
-     when(userRepositories.findById(any())).thenReturn(Optional.empty());
-     assertThat(service.findById(any())).isEqualTo(null);
+    public void testDeleteByIdWithUnkwownId(){
+       doThrow(new ResourceNotFoundException("Id does not exist"))
+               .when(userRepositories)
+               .deleteById(any(UUID.class));
+
+       assertThrows(ResourceNotFoundException.class,()->{
+           service.deleteById(uuid);
+       });
     }
 
     @Test
-    void findByEmail() {
-        when(userRepositories.getUserByEmail(any())).thenReturn(Optional.ofNullable(user));
-        assertThat(service.findByEmail("allan@gmail.com").getName()).isEqualTo("allan");
+    public void testLoginByUsername(){
+        Authentication authMock = mock(Authentication.class);
+        String token ="jwt.auth.token";
+        when(authenticationManager.authenticate(any(Authentication.class))).thenReturn(authMock);
+        when(authMock.isAuthenticated()).thenReturn(true);
+        when(jwtService.generateToken(any(String.class))).thenReturn(token);
+        doNothing().when(producer).sendJsonMessage(any(MessageUser.class));
+
+        String actualtoken = service.loginuser(login);
+
+        assertEquals(token,actualtoken);
+
+        ArgumentCaptor<MessageUser>  messageCapture = ArgumentCaptor.forClass(MessageUser.class);
+        verify(producer).sendJsonMessage(messageCapture.capture());
+
+        MessageUser messageSent = messageCapture.getValue();
+        assertEquals("allank",messageSent.getUsername());
+
+
+
     }
 
     @Test
-    void emailNotPresent(){
-        when(userRepositories.getUserByEmail(any())).thenReturn(Optional.empty());
-        assertThat(service.findByEmail(any())).isEqualTo(null);
+    public void loginWithWrongCredentials(){
+        Authentication authMock = mock(Authentication.class);
+        when(authenticationManager.authenticate(any(Authentication.class))).thenReturn(authMock);
+        when(authMock.isAuthenticated()).thenReturn(false);
+
+        assertNull(service.loginuser(login));
+
     }
+
+
+
+
+
+    void tearDown() throws Exception {
+        closeable.close();
+    }
+
 }
