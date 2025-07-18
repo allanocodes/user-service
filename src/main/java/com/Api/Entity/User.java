@@ -4,78 +4,86 @@ package com.Api.Entity;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+
 @Table(name = "users")
 @Entity
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class User implements Serializable {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+    private  String username;
+    private String password;
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+      name = "user_roles" ,
+      joinColumns = @JoinColumn(name = "user_id"),
+      inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<Role> userRoles = new HashSet<>();
+    @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.PERSIST,orphanRemoval = true)
+    private UserProfile profile;
 
-    private Integer id;
-
-    private String name;
-
-    private String email;
-
-    private String phone;
-
-    public User( String name,String phone,String email) {
-        this.name = name;
-        this.email = email;
-        this.phone= phone;
-    }
-
-    public User(Integer id, String name,String phone,String email) {
-        this.name = name;
-        this.email = email;
-        this.phone= phone;
-        this.id=id;
-    }
-
-    public User() {
-    }
-
-    public String getEmail() {
-        return this.email;
-    }
-
-    public void setEmail(final String email) {
-        this.email = email;
-    }
-
-    public Integer getId() {
+    public UUID getId() {
         return this.id;
     }
 
-    public void setId(final Integer id) {
+    public void setId(final UUID id) {
         this.id = id;
     }
 
-    public String getName() {
-        return this.name;
+    public String getUsername() {
+        return this.username;
     }
 
-    public void setName(final String name) {
-        this.name = name;
+    public void setUsername(final String username) {
+        this.username = username;
     }
 
-    public String getPhone() {
-        return this.phone;
+    public String getPassword() {
+        return this.password;
     }
 
-    public void setPhone(final String phone) {
-        this.phone = phone;
+    public void setPassword(final String password) {
+        this.password = password;
+    }
+
+    public UserProfile getProfile() {
+        return this.profile;
+    }
+
+    public void setProfile(final UserProfile profile) {
+        this.profile = profile;
+    }
+
+    public Set<Role> getUserRoles() {
+        return this.userRoles;
+    }
+
+    public void setUserRoles(final Set<Role> userRoles) {
+        this.userRoles = userRoles;
     }
 
     @Override
     public String toString() {
         return "User{" +
-                "Id=" + id +
-                ", name='" + name + '\'' +
-                ", email='" + email + '\'' +
-                ", phone='" + phone + '\'' +
+                "id=" + id +
+                ", username='" + username + '\'' +
+                ", password='" + password + '\'' +
+                ", userRoles=" + userRoles +
+                ", profile=" + profile +
                 '}';
     }
 }

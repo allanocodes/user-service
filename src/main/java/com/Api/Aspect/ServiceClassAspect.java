@@ -15,7 +15,7 @@ import java.util.List;
 @Aspect
 public class ServiceClassAspect {
 
-   @Around("execution(* com.Api.service.*.*(..))")
+   @Around("execution(* com.Api.service.UserService.*(..))")
     public Object wrapServiceException(ProceedingJoinPoint joinPoint) throws Throwable {
         try{
             System.out.println("Method: " + joinPoint.getSignature());

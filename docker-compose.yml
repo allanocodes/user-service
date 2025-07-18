@@ -17,6 +17,25 @@ services:
       timeout: 5s
       retries: 10
     restart: unless-stopped
+
+  rabbitmq:
+   image: rabbitmq:4.1.2-management
+   container_name: rabbitMq
+   ports:
+     - "15672:15672"
+     - "5672:5672"
+   environment:
+    RABBITMQ_DEFAULT-USER: guest
+    RABBITMQ_DEFAULT_PASS: guest
+   healthcheck:
+    test: ["CMD","rabbitmq-diagnostics","ping"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+   restart: unless-stopped
+
+
+
   redis:
     container_name: test-redis
     image: redis:latest
@@ -38,15 +57,24 @@ services:
         condition: service_healthy
       mysql:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     ports:
       - "8080:8080"
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/testdb
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: allanok
+
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
       SPRING_CACHE_TYPE: redis
+
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+
     volumes:
       - app-data:/app/data
 
