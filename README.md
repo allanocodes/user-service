@@ -27,7 +27,7 @@ To address this, the application was restructured into smaller, independent serv
 
     UUID Service – handles unique ID generation separately.
 
-    Email Service – receives data from RabbitMQ and sends emails without blocking the User Service.
+    Email Service – receives data from RabbitMQ and sends emails to notify user signup without blocking the User Service.
 
     SMS Service – receives data from RabbitMQ and sends SMS notifications. The User Service sends the necessary data to RabbitMQ, which then forwards it to the SMS Service asynchronously.
 
