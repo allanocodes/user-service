@@ -26,7 +26,11 @@ public class UserRepositoryTest {
     UserRepositories userRepositories;
 
     @Autowired
+    ProfileRepo profileRepo;
+
+    @Autowired
     RoleJpa roleJpa;
+
 
 
 
@@ -38,6 +42,7 @@ public class UserRepositoryTest {
                 .build();
 
         UserProfile profile = UserProfile.builder()
+                .id("profile:20250731:0001")
                 .name("allan")
                 .email("ndururiallan92gmail.com")
                 .phone(phone).build();
@@ -50,11 +55,14 @@ public class UserRepositoryTest {
         Set<Role> set = new HashSet<>();
         set.add(role);
        User user = User.builder()
+               .id("user:20250731:0001")
                 .username("allank")
                 .password("1234@now")
                 .userRoles(set)
                .profile(profile)
                 .build();
+
+       profileRepo.save(profile);
 
         userRepositories.save(user);
     }

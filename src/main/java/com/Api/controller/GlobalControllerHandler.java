@@ -29,9 +29,9 @@ public class GlobalControllerHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ResponceApi<String>> handleGeneric(){
+    public ResponseEntity<ResponceApi<String>> handleGeneric(Exception ex){
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ResponceApi<>("error","Unexpected error Ocurred",null));
+                .body(new ResponceApi<>("error ","Unexpected error Ocurred " + ex.getMessage(),null));
     }
 
     @ExceptionHandler(InvalidTokenException.class)

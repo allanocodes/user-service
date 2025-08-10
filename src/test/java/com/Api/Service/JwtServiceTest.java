@@ -17,6 +17,9 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import javax.crypto.SecretKey;
 
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
@@ -31,7 +34,7 @@ class JwtServiceTest {
 
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         jwtService = new JwtService();  // Initialize the object here
     }
 
@@ -43,14 +46,14 @@ class JwtServiceTest {
   }
 
   @Test
-  public void testGenaratetoken(){
+  public void testGenaratetoken() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
       String username = "allan";
       String token = jwtService.generateToken(username);
       assertNotNull(token);
 
   }
   @Test
-  public void testParseToken(){
+  public void testParseToken() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
       String username = "allan";
       String token = jwtService.generateToken(username);
 
@@ -59,7 +62,7 @@ class JwtServiceTest {
   }
 
   @Test
-  public void testValidToken(){
+  public void testValidToken() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
 
       String username = "allan";
       String token = jwtService.generateToken(username);
@@ -83,7 +86,7 @@ class JwtServiceTest {
   }
 
  @Test
-  public void testWithWrongToken(){
+  public void testWithWrongToken() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
       String username = "allan";
       String token = jwtService.generateToken(username);
 
