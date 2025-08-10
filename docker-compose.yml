@@ -55,7 +55,7 @@ services:
     restart: unless-stopped
 
   security:
-    container_name: security-service
+    container_name: .
     build:
       context: ./security-service
     image: spring-app
