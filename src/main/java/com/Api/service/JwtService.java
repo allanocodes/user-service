@@ -1,6 +1,7 @@
 package com.Api.service;
 
 import com.Api.Exceptions.InvalidTokenException;
+import com.Api.Helpers.KeyUtils;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -9,6 +10,10 @@ import org.reactivestreams.Publisher;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Base64;
 import java.util.Date;
 
@@ -16,6 +21,11 @@ import java.util.Date;
 public class JwtService {
 
     private String secretKey = "";
+    private final PrivateKey privateKey;
+
+    public JwtService() throws Exception {
+        this.privateKey = KeyUtils.getPrivateKey("private.pem");
+    }
 
     private void generateKeyIfNeeded() {
         if (secretKey == null || secretKey.isEmpty()) {
@@ -31,21 +41,19 @@ public class JwtService {
     }
 
 
-    public String generateToken(String username){
-
-            String token = Jwts.builder()
-                    .claim("role", "USER")
-                    .setSubject(username)
-                    .setExpiration(new Date(System.currentTimeMillis() + 3600000))
-                    .signWith(getKey()).compact();
-            return token;
-
+    public String generateToken(String username) {
+        return Jwts.builder()
+                .claim("role", "USER")
+                .setSubject(username)
+                .setExpiration(new Date(System.currentTimeMillis() + 3600000))
+                .signWith(privateKey, SignatureAlgorithm.RS256)
+                .compact();
     }
 
     public Claims getClaims(String token){
         try {
         Claims claims = Jwts.parserBuilder()
-                .setSigningKey(getKey())
+                .setSigningKey(KeyUtils.getPublicKey("public.pem"))
                 .build().parseClaimsJws(token)
                 .getBody();
 
@@ -56,6 +64,8 @@ public class JwtService {
                 SignatureException e)
         {
             throw new InvalidTokenException("Invalid Token",e);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
 
     }

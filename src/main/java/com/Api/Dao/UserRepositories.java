@@ -13,7 +13,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 
-public interface UserRepositories extends JpaRepository<User, UUID> {
+public interface UserRepositories extends JpaRepository<User, String> {
 
     @Query("from User where username =:username")
     public Optional<User> getUserByUsername(@Param("username") String username);

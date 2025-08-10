@@ -1,5 +1,6 @@
 package com.Api.Service;
 
+import com.Api.Dao.ProfileRepo;
 import com.Api.Dao.UserRepositories;
 import com.Api.Dto.DisplayDto;
 import com.Api.Dto.MessageUser;
@@ -11,9 +12,12 @@ import com.Api.Entity.User;
 import com.Api.Entity.UserProfile;
 import com.Api.Exceptions.ResourceNotFoundException;
 import com.Api.Exceptions.ServiceException;
+import com.Api.Helpers.ResponseUuidDto;
+import com.Api.Helpers.ResponseWrapper;
 import com.Api.service.JwtService;
 import com.Api.service.RabbitMqProducer;
 import com.Api.service.UserService;
+import com.Api.service.UuidInterface;
 import com.mysql.cj.util.DnsSrv;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,10 +26,14 @@ import org.mockito.*;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.*;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -54,6 +62,9 @@ class UserServiceTest {
     @Mock
     MessageUser messageUser;
 
+    @Mock
+    ProfileRepo profileRepo;
+
 
     @Mock
     RabbitMqProducer producer;
@@ -61,9 +72,14 @@ class UserServiceTest {
     @InjectMocks
     UserService service;
 
+    @Mock
+    UuidInterface uuidInterface;
+
     AutoCloseable closeable;
 
-    UUID uuid = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+    UserProfile profile;
+
+    String uuid = "123e4567-e89b-12d3-a456-426614174000";
     User user;
     UserDto userDto;
 
@@ -80,7 +96,7 @@ class UserServiceTest {
                 .number("123456789")
                 .build();
 
-        UserProfile profile = UserProfile.builder()
+         profile = UserProfile.builder()
                 .name("allan")
                 .email("ndururiallan92gmail.com")
                 .phone(phone).build();
@@ -91,6 +107,7 @@ class UserServiceTest {
         Set<Role> set = new HashSet<>();
         set.add(role);
          user = User.builder()
+                 .id("123e4567-e89b-12d3-a456-426614174000")
                 .username("allank")
                 .password("1234@now")
                 .userRoles(set)
@@ -121,9 +138,15 @@ class UserServiceTest {
 
     @Test
     public void testInsertUser(){
+        ResponseUuidDto responseUuidDto =ResponseUuidDto.builder().id("123e4567-e89b-12d3-a456-426614174000").build();
+        ResponseWrapper<ResponseUuidDto>  wrapper = new ResponseWrapper<>("success","uuid sent",responseUuidDto);
+        ResponseEntity<ResponseWrapper<ResponseUuidDto>> responseEntity= ResponseEntity.ok(wrapper);
        when(userRepositories.save(any(User.class))).thenReturn(user);
        when(passwordEncoder.encode(any())).thenReturn("1234@now");
        when(userRepositories.getUserByUsername(any())).thenReturn(Optional.empty());
+       when(uuidInterface.generateUuid(any(String.class))).thenReturn(responseEntity);
+       when(profileRepo.save(any(UserProfile.class))).thenReturn(profile);
+
        doNothing().when(producer).sendJsonMessage(messageUser);
 
        assertThat(service.insertUser(userDto).getEmail())
@@ -166,13 +189,13 @@ class UserServiceTest {
 
     @Test
     public void testuserWhenIdDoesNotExist(){
-        when(userRepositories.findById(any(UUID.class))).thenReturn(Optional.empty());
+        when(userRepositories.findById(any(String.class))).thenReturn(Optional.empty());
         assertThat(service.getById(uuid)).isEqualTo(null);
     }
 
     @Test
     public void testUpdateById(){
-        when(userRepositories.findById(any(UUID.class))).thenReturn(Optional.ofNullable(user));
+        when(userRepositories.findById(any(String.class))).thenReturn(Optional.ofNullable(user));
         when(passwordEncoder.encode("1234@now")).thenReturn("1234@now");
         when(userRepositories.save(any(User.class))).thenReturn(user);
         assertThat(service.updateById(uuid, userDto).getName()).isEqualTo("allan");
@@ -180,7 +203,7 @@ class UserServiceTest {
     }
    @Test
     public void testUpdateUnknownUserById(){
-        when(userRepositories.findById(any(UUID.class))).thenReturn(Optional.empty());
+        when(userRepositories.findById(any(String.class))).thenReturn(Optional.empty());
         assertThat(service.updateById(uuid, userDto)).isEqualTo(null);
     }
 
@@ -202,7 +225,7 @@ class UserServiceTest {
 
   @Test
     public void testDeleteById(){
-        doNothing().when(userRepositories).deleteById(any(UUID.class));
+        doNothing().when(userRepositories).deleteById(any(String.class));
         assertThat(service.deleteById(uuid)).isEqualTo("Delete Success");
     }
 
@@ -210,7 +233,7 @@ class UserServiceTest {
     public void testDeleteByIdWithUnkwownId(){
        doThrow(new ResourceNotFoundException("Id does not exist"))
                .when(userRepositories)
-               .deleteById(any(UUID.class));
+               .deleteById(any(String.class));
 
        assertThrows(ResourceNotFoundException.class,()->{
            service.deleteById(uuid);
@@ -218,7 +241,7 @@ class UserServiceTest {
     }
 
     @Test
-    public void testLoginByUsername(){
+    public void testLoginByUsername() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
         Authentication authMock = mock(Authentication.class);
         String token ="jwt.auth.token";
         when(authenticationManager.authenticate(any(Authentication.class))).thenReturn(authMock);
@@ -241,7 +264,7 @@ class UserServiceTest {
     }
 
     @Test
-    public void loginWithWrongCredentials(){
+    public void loginWithWrongCredentials() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
         Authentication authMock = mock(Authentication.class);
         when(authenticationManager.authenticate(any(Authentication.class))).thenReturn(authMock);
         when(authMock.isAuthenticated()).thenReturn(false);

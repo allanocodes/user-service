@@ -1,10 +1,8 @@
 package com.Api.service;
 
+import com.Api.Dao.ProfileRepo;
 import com.Api.Dao.UserRepositories;
-import com.Api.Dto.DisplayDto;
-import com.Api.Dto.MessageUser;
-import com.Api.Dto.UserDto;
-import com.Api.Dto.UserLogin;
+import com.Api.Dto.*;
 import com.Api.Entity.Role;
 import com.Api.Entity.User;
 
@@ -12,6 +10,9 @@ import com.Api.Entity.UserProfile;
 import com.Api.Exceptions.ResourceNotFoundException;
 import com.Api.Exceptions.ServiceException;
 
+import com.Api.Helpers.ResponseUuidDto;
+import com.Api.Helpers.ResponseWrapper;
+import org.bouncycastle.asn1.ocsp.ResponderID;
 import org.hibernate.annotations.ColumnDefault;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
@@ -25,6 +26,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -36,10 +40,16 @@ public class UserService {
     PasswordEncoder passwordEncoder;
 
    @Autowired
+   ProfileRepo profileRepo;
+
+   @Autowired
    AuthenticationManager authenticationManager;
 
    @Autowired
    JwtService jwtService;
+
+   @Autowired
+   UuidInterface uuidInterface;
 
     @Autowired
     RabbitMqProducer producer;
@@ -62,35 +72,56 @@ public class UserService {
                 .text("User " + userDto.getUsername() + " created at " + new Date().getTime())
                 .build();
 
+       ResponseUuidDto uuiddto = uuidInterface.generateUuid("user").getBody().getData();
+        ResponseUuidDto uuiddto2 = uuidInterface.generateUuid("profile").getBody().getData();
 
         Role role = Role.builder().id(1l)
                 .build();
         UserProfile profile = UserProfile.builder()
+                .id(uuiddto2.getId())
                 .name(userDto.getName())
                 .email(userDto.getEmail())
                 .phone(userDto.getPhone())
                 .build();
+        if(!profileRepo.existsById(uuiddto2.getId())){
+            profileRepo.save(profile);
+        }
+
         Set<Role> userRoles = new HashSet<>();
         userRoles.add(role);
 
         User user = User.builder()
+                .id(uuiddto.getId())
                 .username(userDto.getUsername())
                 .password(passwordEncoder.encode(userDto.getPassword()))
                 .userRoles(userRoles)
                 .profile(profile)
                 .build();
-     User user1 =   userRepositories.save(user);
+
+        User user1 = null;
+        if(!userRepositories.existsById(uuiddto.getId())){
+            user1 =   userRepositories.save(user);
+        }
+
 
      DisplayDto dto = DisplayDto.builder()
              .uuid(user1.getId())
              .name(user1.getProfile().getName())
              .email(user1.getProfile().getEmail())
              .phone(user1.getProfile().getPhone())
-             .lastModified(user.getProfile().getUpdatedAt())
-             .createdAt(user.getProfile().getCreatedAt())
+             .lastModified(user1.getProfile().getUpdatedAt())
+             .createdAt(user1.getProfile().getCreatedAt())
              .build();
 
+        SmsRequest smsRequest = SmsRequest
+                .builder()
+                .from("0112686331")
+                .to("+" + userDto.getPhone().getCountryCode() + userDto.getPhone().getNumber())
+                .text("User "+ userDto.getUsername() + "created")
+                .build();
+
      producer.sendJsonMessage(messageUser);
+    producer.sendSms(smsRequest);
 
      return dto;
 
@@ -116,7 +147,7 @@ public class UserService {
 
 
     @Cacheable(value = "user",key = "#id", unless = "#result == null")
-    public DisplayDto getById(UUID id){
+    public DisplayDto getById(String id){
      Optional<User>  userOptional =  userRepositories.findById(id);
      User user = userOptional.orElseGet(()->null);
 
@@ -163,7 +194,7 @@ public class UserService {
     }
 
    @CachePut(value = "user" ,key = "#id",unless = "result == null")
-    public DisplayDto updateById(UUID id,UserDto userDto){
+    public DisplayDto updateById(String id,UserDto userDto){
       Optional<User> userOptional = userRepositories.findById(id);
 
       User user2 = userOptional.orElseGet(()->{
@@ -211,7 +242,7 @@ public class UserService {
 
     }
     @CacheEvict(value = "user",key = "#id")
-    public String deleteById(UUID id){
+    public String deleteById(String id){
 
         try{
             userRepositories.deleteById(id);
@@ -223,7 +254,7 @@ public class UserService {
 
     }
 
-   public String loginuser(UserLogin userLogin){
+   public String loginuser(UserLogin userLogin) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
        Authentication authentication = authenticationManager.
                authenticate(new UsernamePasswordAuthenticationToken(userLogin.getUsername(),
                        userLogin.getPassword()));
@@ -231,6 +262,7 @@ public class UserService {
        if(authentication.isAuthenticated()){
            MessageUser messageUser = MessageUser.builder()
                    .username(userLogin.getUsername())
+                   .email("null")
                    .subject("Login Alert!")
                    .text("You credential were used for login! If its not contact support")
                    .build();

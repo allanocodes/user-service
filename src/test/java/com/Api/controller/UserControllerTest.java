@@ -146,7 +146,7 @@ class UserControllerTest {
         when(service.insertUser(any(UserDto.class))).thenReturn(displayDto);
         String jsonString = mapper.writeValueAsString(userDto);
 
-        mockMvc.perform(post("/userSignUp").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/security/create").contentType(MediaType.APPLICATION_JSON)
                 .content(jsonString)).andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.name").value("allan"))
@@ -159,7 +159,7 @@ class UserControllerTest {
         when(service.insertUser(any(UserDto.class))).thenReturn(null);
         String jsonString = mapper.writeValueAsString(userDto);
 
-        mockMvc.perform(post("/userSignUp").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/security/create").contentType(MediaType.APPLICATION_JSON)
                         .content(jsonString)).andDo(print())
                 .andExpect(status().isNotAcceptable())
                 .andExpect(jsonPath("$.message").value("username exist"));
@@ -170,7 +170,7 @@ class UserControllerTest {
      public void testGetAllUsers() throws Exception {
         when(service.getAll()).thenReturn(displayDtoList);
 
-        mockMvc.perform(get("/user"))
+        mockMvc.perform(get("/security/find"))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].name").value("allan"));
@@ -181,7 +181,7 @@ class UserControllerTest {
      public void testGetAllUsersWithNoUsers() throws Exception {
         List<DisplayDto> emptyList = new ArrayList<>();
         when(service.getAll()).thenReturn(emptyList);
-         mockMvc.perform(get("/user"))
+         mockMvc.perform(get("/security/find"))
                  .andDo(print())
                  .andExpect(status().isOk())
                  .andExpect(jsonPath("$.message").value("No records found"));
@@ -191,8 +191,8 @@ class UserControllerTest {
      @Test
      @WithMockUser(username = "allan")
      public void testfindById() throws Exception {
-       when(service.getById(any(UUID.class))).thenReturn(displayDto);
-       mockMvc.perform(get("/user/api/" + uuid))
+       when(service.getById(any(String.class))).thenReturn(displayDto);
+       mockMvc.perform(get("/security/find/" + uuid))
                .andDo(print())
                .andExpect(status().isOk())
                .andExpect(jsonPath("$.data.name").value("allan"));
@@ -200,8 +200,8 @@ class UserControllerTest {
     @Test
     @WithMockUser(username = "allan")
     public void testfindByIdWithUnknownId() throws Exception {
-        when(service.getById(any(UUID.class))).thenReturn(null);
-        mockMvc.perform(get("/user/api/" + uuid))
+        when(service.getById(any(String.class))).thenReturn(null);
+        mockMvc.perform(get("/security/find/" + uuid))
                 .andDo(print())
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("User Not Found"));
@@ -211,7 +211,7 @@ class UserControllerTest {
     @WithMockUser(username = "allan")
     public void testfindByUsername() throws Exception {
         when(service.getByUsername(any(String.class))).thenReturn(displayDto);
-        mockMvc.perform(get("/user/allank"))
+        mockMvc.perform(get("/security/findBy/allank"))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.name").value("allan"));
@@ -221,7 +221,7 @@ class UserControllerTest {
     @WithMockUser(username = "allan")
     public void testfindByUsernameWithUnknownUsername() throws Exception {
         when(service.getByUsername(any(String.class))).thenReturn(null);
-        mockMvc.perform(get("/user/allank"))
+        mockMvc.perform(get("/security/findBy/allank"))
                 .andDo(print())
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("User Not Found"));
@@ -229,10 +229,10 @@ class UserControllerTest {
     @Test
     @WithMockUser(username = "allan")
     public void testUpdateById() throws Exception {
-        when(service.updateById(any(UUID.class),any(UserDto.class))).thenReturn(displayDto);
+        when(service.updateById(any(String.class),any(UserDto.class))).thenReturn(displayDto);
         String jsonString = mapper.writeValueAsString(userDto);
 
-         mockMvc.perform(put("/user/"+uuid)
+         mockMvc.perform(put("/security/update/"+uuid)
                          .contentType(MediaType.APPLICATION_JSON)
                          .content(jsonString)
                  )
@@ -243,10 +243,10 @@ class UserControllerTest {
     @Test
     @WithMockUser(username = "allan")
     public void testUpdateByIdWithUnknownId() throws Exception {
-        when(service.updateById(any(UUID.class),any(UserDto.class))).thenReturn(null);
+        when(service.updateById(any(String.class),any(UserDto.class))).thenReturn(null);
         String jsonString = mapper.writeValueAsString(userDto);
 
-        mockMvc.perform(put("/user/"+uuid)
+        mockMvc.perform(put("/security/update/"+uuid)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonString)
                 )
@@ -257,9 +257,9 @@ class UserControllerTest {
     @Test
     @WithMockUser(username = "allan")
     public void testDeleteByUsername() throws Exception {
-       when(service.deleteById(any(UUID.class))) .thenReturn("Delete Success");
+       when(service.deleteById(any(String.class))) .thenReturn("Delete Success");
 
-       mockMvc.perform(delete(("/user/"+ uuid))).andDo(print())
+       mockMvc.perform(delete(("/security/delete/"+ uuid))).andDo(print())
                .andExpect(jsonPath("$.message").value("Delete Success"));
     }
 
@@ -268,7 +268,7 @@ class UserControllerTest {
         String token = "login.jwt.token";
         when(service.loginuser(any(UserLogin.class))).thenReturn(token);
         String jsonString = mapper.writeValueAsString(userLogin);
-        mockMvc.perform(post("/userLogin")
+        mockMvc.perform(post("/security/userLogin")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonString))
                 .andDo(print())
@@ -281,7 +281,7 @@ class UserControllerTest {
         String token = "login.jwt.token";
         when(service.loginuser(any(UserLogin.class))).thenReturn(null);
         String jsonString = mapper.writeValueAsString(userLogin);
-        mockMvc.perform(post("/userLogin")
+        mockMvc.perform(post("/security/userLogin")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonString))
                 .andDo(print())
@@ -295,7 +295,7 @@ class UserControllerTest {
     public void testdeleteByIdWhereIdIsNotFound() throws Exception {
      when(service.deleteById(any())).thenThrow( new ResourceNotFoundException("id not found"));
 
-        mockMvc.perform(delete(("/user/"+ uuid))).andDo(print())
+        mockMvc.perform(delete(("/security/delete/"+ uuid))).andDo(print())
                 .andExpect(jsonPath("$.message").value("Record Does Not Exist"));
     }
 
@@ -305,7 +305,7 @@ class UserControllerTest {
         UserDto userDto1 = new UserDto();
         String jsonString = mapper.writeValueAsString(userDto1);
 
-        mockMvc.perform(post("/userSignUp")
+        mockMvc.perform(post("/security/create")
                         .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonString)).andDo(print())
                 .andExpect(jsonPath("$.errors.username")
@@ -336,7 +336,7 @@ class UserControllerTest {
 
         String jsonString = mapper.writeValueAsString(userDto1);
 
-        mockMvc.perform(post("/userSignUp")
+        mockMvc.perform(post("/security/create")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonString)).andDo(print())
                 .andExpect(jsonPath("$.errors.phone").value("Phone is required"));
@@ -354,7 +354,7 @@ class UserControllerTest {
                 .build();
         String jsonString = mapper.writeValueAsString(userDto1);
 
-        mockMvc.perform(post("/userSignUp")
+        mockMvc.perform(post("/security/create")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonString)).andDo(print())
                 .andExpect(jsonPath("$.errors.username").value("Username should have between 5 to 10 character"));
@@ -371,7 +371,7 @@ class UserControllerTest {
                 .build();
         String jsonString = mapper.writeValueAsString(userDto1);
 
-        mockMvc.perform(post("/userSignUp")
+        mockMvc.perform(post("/security/create")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonString)).andDo(print())
                 .andExpect(jsonPath("$.errors.username").value("Username should have between 5 to 10 character"));
@@ -390,7 +390,7 @@ class UserControllerTest {
 
         String jsonString = mapper.writeValueAsString(userDto1);
 
-        mockMvc.perform(post("/userSignUp")
+        mockMvc.perform(post("/security/create")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonString)).andDo(print())
                 .andExpect(status().is(expectedCode));
@@ -414,7 +414,7 @@ class UserControllerTest {
              when(service.insertUser(any(UserDto.class))).thenReturn(displayDto);
          }
          String jsonString = mapper.writeValueAsString(userDto1);
-         mockMvc.perform(post("/userSignUp")
+         mockMvc.perform(post("/security/create")
                  .contentType(MediaType.APPLICATION_JSON)
                  .content(jsonString)
          ).andDo(print())
@@ -445,7 +445,7 @@ class UserControllerTest {
         }
         String jsonString = mapper.writeValueAsString(userDto1);
 
-        mockMvc.perform(post("/userSignUp").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/security/create").contentType(MediaType.APPLICATION_JSON)
                 .content(jsonString)).andDo(print())
                 .andExpect(status().is(expectedCode));
 
@@ -480,7 +480,7 @@ class UserControllerTest {
          }
 
 
-         mockMvc.perform(post("/userSignUp").contentType(MediaType.APPLICATION_JSON)
+         mockMvc.perform(post("/security/create").contentType(MediaType.APPLICATION_JSON)
                          .content(json)).andDo(print())
                  .andExpect(status().is(expectedCode));
 
@@ -514,7 +514,7 @@ class UserControllerTest {
 
             when(service.loginuser(any())).thenThrow(new BadCredentialsException("Invalid password"));
 
-            mockMvc.perform(post("/userLogin")
+            mockMvc.perform(post("/security/userLogin")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json))
                     .andExpect(status().isUnauthorized())
@@ -533,7 +533,7 @@ class UserControllerTest {
 
             when(service.loginuser(any())).thenThrow(new UsernameNotFoundException("Not found"));
 
-            mockMvc.perform(post("/userLogin")
+            mockMvc.perform(post("/security/userLogin")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json))
                     .andExpect(status().isUnauthorized())

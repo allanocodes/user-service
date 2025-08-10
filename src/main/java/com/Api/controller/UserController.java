@@ -10,6 +10,9 @@ import com.Api.Helpers.ResponceApi;
 import com.Api.Helpers.ResponseBuilder;
 import com.Api.service.RabbitMqProducer;
 import com.Api.service.UserService;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jdk.jshell.Snippet;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,16 +23,23 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.List;
 import java.util.UUID;
 
+
 @RestController
+@RequestMapping("/security")
+@Tag(name = "User Security", description = "Endpoints for user management and authentication")
 public class UserController {
 
     @Autowired
     UserService userService;
 
-    @GetMapping("/user")
+    @GetMapping("/find")
+    @Tag(name = "Get ",description = "Gets All Users In the Database")
     public ResponseEntity<ResponceApi<List<DisplayDto>> > findAll() {
         List<DisplayDto> userDtos = userService.getAll();
 
@@ -41,8 +51,10 @@ public class UserController {
 
     }
 
-    @PostMapping("/userSignUp")
-    public ResponseEntity<ResponceApi<DisplayDto>> insertUser(@RequestBody @Valid UserDto userDto){
+    @PostMapping("/create")
+    @Tag(name = "Post ",description = "Register users")
+    public ResponseEntity<ResponceApi<DisplayDto>> insertUser( @Parameter(name = "userDto", description = "userdto containing user details",schema =
+    @Schema(implementation = UserDto.class))   @RequestBody @Valid UserDto userDto){
         DisplayDto displayDto = userService.insertUser(userDto);
 
         if(displayDto != null){
@@ -54,8 +66,10 @@ public class UserController {
 
     }
 
-    @GetMapping("/user/api/{id}")
-    public ResponseEntity<ResponceApi<DisplayDto>> findById(@PathVariable UUID id){
+    @GetMapping("/find/{id}")
+    @Tag(name = "Get",description = "Gets All Users By Id")
+    public ResponseEntity<ResponceApi<DisplayDto>> findById(@Parameter( name = "id", description = "Uuid String unique to every user",required = true)
+                                                                @PathVariable String id){
         DisplayDto dto = userService.getById(id);
         if(dto != null){
             return ResponseBuilder.sucess("User Found",dto);
@@ -63,8 +77,9 @@ public class UserController {
 
         return ResponseBuilder.error("User Not Found",HttpStatus.NOT_FOUND);
     }
-    @GetMapping("/user/{username}")
-    public ResponseEntity<ResponceApi<DisplayDto>> findByUsername(@PathVariable  String username){
+    @GetMapping("/findBy/{username}")
+    @Tag(name = "Get",description = "Get By Username")
+    public ResponseEntity<ResponceApi<DisplayDto>> findByUsername(@Parameter (name = "username", description = "username",required = true) @PathVariable  String username){
         DisplayDto dto = userService.getByUsername(username);
         if(dto != null){
             return ResponseBuilder.sucess("User Found",dto);
@@ -72,8 +87,11 @@ public class UserController {
 
         return ResponseBuilder.error("User Not Found",HttpStatus.NOT_FOUND);
     }
-    @PutMapping("/user/{id}")
-    public ResponseEntity<ResponceApi<DisplayDto>> updateById(@PathVariable  UUID id,@RequestBody @Valid UserDto dto){
+    @Tag(name = "update",description = "Update all users by id")
+    @PutMapping("/update/{id}")
+    public ResponseEntity<ResponceApi<DisplayDto>> updateById(@Parameter(name = "id" ,description = "user uuid",required = true)  @PathVariable  String id,@Parameter(name = "userdto"
+   ,description = "json object containing user credentials", schema = @Schema(implementation = UserDto.class))
+    @RequestBody @Valid UserDto dto){
         DisplayDto displayDto = userService.updateById(id,dto);
         if(displayDto != null){
             return ResponseBuilder.sucess("Record Updated",displayDto);
@@ -81,14 +99,17 @@ public class UserController {
         }
         return ResponseBuilder.error("Id Does Not Exist",HttpStatus.NOT_FOUND);
     }
-    @DeleteMapping("/user/{id}")
-    public ResponseEntity<ResponceApi<String>> deleteById(@PathVariable UUID id){
+    @DeleteMapping("/delete/{id}")
+    @Tag(name = "Delete",description = "Delete By Uuid String")
+    public ResponseEntity<ResponceApi<String>> deleteById(  @Parameter(name = "id", description = "Uuid of the user",required = true) @PathVariable String id){
         String message = userService.deleteById(id);
         return ResponseBuilder.sucess(message,null);
     }
 
     @PostMapping("/userLogin")
-    public ResponseEntity<ApiLoginResponse> loginUser(@RequestBody  UserLogin userLogin){
+    @Tag(name = "Login",description = "login to system")
+    public ResponseEntity<ApiLoginResponse> loginUser( @Parameter (name = "userLogin", description = "It a json object for login purposes",required = true,
+    schema = @Schema(implementation = UserLogin.class)) @RequestBody  UserLogin userLogin  ) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
         String token = userService.loginuser(userLogin);
 
         if( token != null){

@@ -1,6 +1,7 @@
 package com.Api.service;
 
 import com.Api.Dto.MessageUser;
+import com.Api.Dto.SmsRequest;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,6 +17,17 @@ public class RabbitMqProducer {
     String exchangeName;
     @Autowired
     RabbitTemplate rabbitTemplate;
+
+
+    @Value("${rabbitmq.queue.sms-name}")
+    private String queueName;
+
+    @Value("${rabbitmq.queue.exchange}")
+    private String exchange;
+
+    @Value("${rabbitmq.queue.routing-key}")
+    private String routingKey2;
+
 
     @Value("${rabbitmq.json-queue.name}")
     String jsonQueue;
@@ -33,6 +45,10 @@ public class RabbitMqProducer {
 
     public void sendJsonMessage(MessageUser messageUser){
         rabbitTemplate.convertAndSend(jsonExchange,jsonBindingKey,messageUser);
+    }
+
+    public void sendSms(SmsRequest smsRequest){
+     rabbitTemplate.convertAndSend(exchange,routingKey2,smsRequest);
     }
 
 

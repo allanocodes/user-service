@@ -24,9 +24,7 @@ public class ServiceClassAspect {
         }catch (DataAccessException e){
             throw new ServiceException("Database Errors Occured",e);
         }
-        catch (Exception e){
-            throw new ServiceException("Unexpected error ocurred",e);
-        }
+
 
 
     }
