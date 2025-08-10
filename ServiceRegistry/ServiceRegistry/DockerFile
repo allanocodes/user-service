@@ -1,0 +1,7 @@
+from openjdk:21-slim
+WORKDIR /app
+copy  target/*.jar app.jar
+RUN apt-get update && apt-get install -y curl
+ENTRYPOINT ["java","-jar","app.jar"]
+
+EXPOSE 8761
