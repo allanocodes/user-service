@@ -32,3 +32,10 @@ To address this, the application was restructured into smaller, independent serv
     SMS Service – receives data from RabbitMQ and sends SMS notifications. The User Service sends the necessary data to RabbitMQ, which then forwards it to the SMS Service asynchronously.
 
 This evolution demonstrates the application’s journey from a monolithic, tightly coupled design to a distributed, loosely coupled microservices architecture.
+Added API Gateway and Security Verification
+
+    Implemented an API Gateway to route requests to services using their service names, allowing access via their respective endpoints.
+
+    Integrated security verification to validate the JWT token issued by the User Service before granting access to other services.
+
+    Designed the architecture so that if additional services are introduced, filters can be added at the gateway level to enforce token verification from the User Service before processing requests.
