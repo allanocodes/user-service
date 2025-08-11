@@ -1,0 +1,198 @@
+version: '3.8'
+
+services:
+  mysql:
+    container_name: mysql-database-demo
+    image: mysql:8
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: allanok
+      MYSQL_DATABASE: testdb
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD","mysqladmin","ping","-h","localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  rabbitmq:
+   image: rabbitmq:4.1.2-management
+   container_name: rabbitMq-demo
+   ports:
+     - "15672:15672"
+     - "5672:5672"
+   networks:
+     - backend
+   environment:
+    RABBITMQ_DEFAULT-USER: guest
+    RABBITMQ_DEFAULT_PASS: guest
+   healthcheck:
+    test: ["CMD","rabbitmq-diagnostics","ping"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+   restart: unless-stopped
+
+
+
+  redis:
+    container_name: redis-database-demo
+    image: redis:latest
+    ports:
+      - "6000:6379"
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  security:
+    container_name: .
+    build:
+      context: ./security-service
+    image: spring-app
+    depends_on:
+      redis:
+        condition: service_healthy
+      mysql:
+       condition: service_healthy
+      rabbitmq:
+       condition: service_healthy
+      api-gateway:
+       condition: service_started
+
+      service-registry:
+        condition: service_healthy
+
+    expose:
+      - 8079
+    networks:
+      - backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-database-demo:3306/testdb
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: allanok
+
+      SPRING_DATA_REDIS_HOST: redis-database-demo
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_CACHE_TYPE: redis
+
+      SPRING_RABBITMQ_HOST: rabbitMq-demo
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
+
+
+    volumes:
+      - app-data:/app/data
+
+  api-gateway:
+    container_name: api-gateway
+    build:
+      context: ./api-gateway
+    image: api-gateway
+    ports:
+      - "8765:8765"
+    networks:
+      - backend
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
+
+
+  service-registry:
+    container_name: service-registry
+    build:
+      context: ./service-registry
+    image: service-registry
+    ports:
+      - "8761:8761"
+    networks:
+      - backend
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  uuid-service:
+    container_name: uuid-service
+    build:
+      context: ./uuid-service
+    image: uuid-service
+    expose:
+      - 8089
+    networks:
+      - backend
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    environment:
+      SPRING_DATA_REDIS_HOST: redis-database-demo
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_CACHE_TYPE: redis
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
+
+  email-service:
+    container_name: email-service
+    build:
+      context: ./email-service
+    image: email-service
+    expose:
+      - 8093
+    networks:
+      - backend
+    depends_on:
+      service-registry:
+        condition: service_healthy
+      security:
+        condition: service_started
+    environment:
+      SPRING_RABBITMQ_HOST: rabbitMq-demo
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
+
+
+  sms-service:
+    container_name: sms-service
+    build:
+      context: ./sms-service
+    image: sms-service
+    expose:
+      - 8094
+    networks:
+      - backend
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    environment:
+      SPRING_RABBITMQ_HOST: rabbitMq-demo
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
+
+
+
+
+volumes:
+  mysql-data:
+  app-data:
+
+networks:
+  backend:
+
