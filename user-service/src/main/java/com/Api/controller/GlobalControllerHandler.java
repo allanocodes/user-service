@@ -34,27 +34,6 @@ public class GlobalControllerHandler {
                 .body(new ResponceApi<>("error ","Unexpected error Ocurred " + ex.getMessage(),null));
     }
 
-    @ExceptionHandler(InvalidTokenException.class)
-    public ResponseEntity<ResponseErrorApi<String>>  handleSignatureError(InvalidTokenException ex){
-
-        Throwable cause = ex.getCause();
-         String message;
-        if (cause instanceof ExpiredJwtException) {
-            message = "Token has expired";
-        } else if (cause instanceof SignatureException) {
-            message = "Token signature is invalid";
-        } else if (cause instanceof MalformedJwtException) {
-            message = "Token is malformed";
-        } else if (cause instanceof UnsupportedJwtException) {
-            message = "Token type is unsupported";
-        } else if (cause instanceof IllegalArgumentException) {
-            message = "Token is null or empty";
-        } else {  message = "Invalid token";
-        }
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ResponseErrorApi<>("error",message,null));
-    }
 
 
     @ExceptionHandler(ResourceNotFoundException.class)

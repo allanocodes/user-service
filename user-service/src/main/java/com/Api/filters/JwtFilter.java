@@ -1,8 +1,15 @@
 package com.Api.filters;
 
 import com.Api.Entity.User;
+import com.Api.Exceptions.InvalidTokenException;
+import com.Api.Helpers.ResponseErrorApi;
 import com.Api.service.JwtService;
 import com.Api.service.UserDetailImpl;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.UnsupportedJwtException;
+import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -34,6 +41,8 @@ public class JwtFilter extends OncePerRequestFilter {
         String username =null;
         String token = "";
 
+        try {
+
         if(header != null && header.startsWith("Bearer ")){
             token = header.substring(7);
             username = jwtService.extractUsername(token);
@@ -52,6 +61,29 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request,response);
+
+
+        } catch (InvalidTokenException ex) {
+           response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+           response.setContentType("application/json");
+
+           String message = "";
+           Throwable cause = ex.getCause();
+
+
+            if (cause instanceof ExpiredJwtException) message = "Token has expired";
+            else if (cause instanceof SignatureException) message = "Token signature is invalid";
+            else if (cause instanceof MalformedJwtException) message = "Token is malformed";
+            else if (cause instanceof UnsupportedJwtException) message = "Token type is unsupported";
+            else if (cause instanceof IllegalArgumentException) message = "Token is null or empty";
+
+
+            response.getWriter().write(
+
+                    new ObjectMapper().writeValueAsString( new ResponseErrorApi<>("error",message,null))
+            );
+
+        }
 
 
     }
