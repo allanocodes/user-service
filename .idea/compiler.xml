@@ -20,7 +20,7 @@
         </processorPath>
         <module name="API" />
       </profile>
-      <profile name="Annotation profile for sms-service" enabled="true">
+      <profile name="Annotation profile for Uuid-Service" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
@@ -28,6 +28,7 @@
           <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.38/lombok-1.18.38.jar" />
         </processorPath>
         <module name="quiz-service" />
+        <module name="Uuid-Service" />
         <module name="sms-service" />
       </profile>
     </annotationProcessing>
@@ -36,6 +37,7 @@
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="API" options="-parameters" />
       <module name="ServiceRegistry" options="-parameters" />
+      <module name="Uuid-Service" options="-parameters" />
       <module name="api-gateway" options="-parameters" />
       <module name="quiz-service" options="-parameters" />
       <module name="sms-service" options="-parameters" />

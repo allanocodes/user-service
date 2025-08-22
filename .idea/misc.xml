@@ -11,6 +11,8 @@
         <option value="$PROJECT_DIR$/ServiceRegistry/ServiceRegistry/pom.xml" />
         <option value="$PROJECT_DIR$/ServiceRegistry/pom.xml" />
         <option value="$PROJECT_DIR$/api-gateway/pom.xml" />
+        <option value="$PROJECT_DIR$/email-service/pom.xml" />
+        <option value="$PROJECT_DIR$/Uuid-Service/pom.xml" />
       </list>
     </option>
   </component>

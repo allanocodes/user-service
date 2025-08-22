@@ -1,6 +1,10 @@
-package com.Api.Entity;
+package com.email_service.dto;
 
-import jakarta.persistence.*;
+
+import jakarta.persistence.Embedded;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

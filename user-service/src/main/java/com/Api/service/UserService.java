@@ -82,6 +82,7 @@ public class UserService {
                 .name(userDto.getName())
                 .email(userDto.getEmail())
                 .phone(userDto.getPhone())
+                .email_sent(false)
                 .build();
         if(!profileRepo.existsById(uuiddto2.getId())){
             profileRepo.save(profile);
